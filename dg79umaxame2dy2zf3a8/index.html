@@ -1,0 +1,1051 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-gBm1jzGynIMYjjZC6yShb8zP7ak/TzU+gkRSJAGLCNs=' 'sha256-7hLIjEp7Lz0qx+9ufuJFoDbyypmsas47QiiNdw4BMiE='; style-src 'unsafe-inline'; connect-src https://api.github.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>家計簿</title>
+<style>/* ============ 土台（マネーフォワード風 = theme-mf） ============ */
+:root {
+  --accent: #e8730a; --on-accent: #fff; --ink: #222; --sub: #52514e; --muted: #898781; --line: #dcdcdc; --hair: #e9e9e6;
+  --bg: #fff; --surface: #fff; --soft: #f7f7f5; --warn: #b45309; --warn-bg: #fff4e0; --ok: #006300; --ok-bg: #eaf6ea; --tint: #fff3e6;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --other: #898781;
+  --radius: 3px; --font: -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic UI", Meiryo, sans-serif;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 14px 60px; }
+
+header { position: sticky; top: 0; z-index: 10; background: var(--surface); border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 8px; padding: 10px 14px 4px; max-width: 760px; margin: 0 auto; }
+.brand .logo { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-weight: 700; display: grid; place-items: center; font-size: 14px; }
+.brand b { font-size: 16px; } .brand small { color: var(--muted); font-size: 11px; margin-left: auto; }
+nav { display: flex; max-width: 760px; margin: 0 auto; padding: 0 6px; overflow-x: auto; }
+nav button { flex: 1; min-width: 52px; background: none; border: 0; border-bottom: 3px solid transparent; padding: 8px 4px 7px; font-size: 13px; white-space: nowrap; }
+nav button svg { display: none; }
+nav button.on { border-bottom-color: var(--accent); font-weight: 700; }
+
+.title { display: none; }
+.card { margin: 0; }
+h2 { font-size: 15px; margin: 22px 0 10px; padding-bottom: 5px; border-bottom: 2px solid var(--accent); }
+h2 small { font-weight: 400; font-size: 11px; color: var(--sub); margin-left: 6px; }
+h3 { font-size: 13px; margin: 16px 0 6px; padding-left: 7px; border-left: 4px solid var(--accent); }
+.note { color: var(--sub); font-size: 12px; }
+
+.month { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 14px 0 4px; }
+.month select { font-size: 19px; font-weight: 700; border: 0; background: none; text-align: center; padding: 2px 4px; }
+.month button, .btn { background: var(--surface); border: 1px solid #c8c8c8; border-radius: var(--radius); padding: 5px 12px; }
+.month button { font-size: 18px; line-height: 1.1; }
+.month button:disabled { opacity: .3; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
+.btn.danger { color: #b3261e; }
+.period { text-align: center; color: var(--sub); font-size: 12px; }
+
+/* いちばん上の大きな数字 */
+.hero { border: 1px solid var(--line); border-top: 3px solid var(--accent); padding: 12px 14px; margin: 12px 0; text-align: center; }
+.hero .lab { font-size: 12px; font-weight: 700; color: var(--sub); }
+.hero .big { font-size: 34px; font-weight: 700; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.hero .sub { font-size: 12px; color: var(--sub); }
+.chip { display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--soft); border: 1px solid var(--line); color: var(--sub); }
+.chip.ok { background: var(--ok-bg); border-color: #a9d3a9; color: var(--ok); } .chip.plan { background: var(--warn-bg); border-color: #f1c27d; color: #7a4a00; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { border: 1px solid var(--line); padding: 7px 9px; text-align: right; font-variant-numeric: tabular-nums; }
+th { font-weight: 700; } td:first-child, th:first-child { text-align: left; }
+tr.sum td { font-weight: 700; background: var(--soft); } tr.grand td { font-weight: 700; background: var(--tint); font-size: 15px; }
+.settle th, .settle td { padding: 7px 6px; white-space: nowrap; }
+.diff { display: block; font-size: 10px; font-weight: 400; color: var(--muted); }
+.sdate { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.sdate input { border: 1px solid #c8c8c8; border-radius: var(--radius); padding: 7px 8px; background: var(--surface); font-size: 16px; }
+
+/* 明細 */
+.tx { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 10px; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--hair); padding: 8px 2px; }
+div.tx { cursor: default; }
+.tx .meta { grid-column: 1 / 3; font-size: 11px; color: var(--sub); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.tx .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tx .amt { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hc i, .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+.tag { font-size: 10px; border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; color: var(--sub); white-space: nowrap; }
+.tag.warn { border-color: var(--warn); color: var(--warn); background: var(--warn-bg); }
+.more { text-align: right; margin: 8px 0; } .more button:not(.btn) { background: none; border: 0; text-decoration: underline; padding: 4px 0; }
+.filters { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.filters select, .filters input { border: 1px solid #c8c8c8; border-radius: var(--radius); padding: 6px 8px; background: var(--surface); min-width: 0; font-size: 16px; }
+.filters input { flex: 1; }
+.alert { background: var(--warn-bg); border: 1px solid #f1c27d; color: #7a4a00; padding: 8px 10px; border-radius: var(--radius); margin: 10px 0; font-size: 13px; }
+.alert button { background: none; border: 0; text-decoration: underline; padding: 0; color: inherit; }
+.meter { grid-column: 1 / 3; height: 8px; background: var(--hair); border-radius: 4px; overflow: hidden; margin: 5px 0 3px; }
+.meter i { display: block; height: 100%; background: var(--s1); border-radius: 4px; } .meter.over i { background: #d03b3b; }
+
+/* カレンダー */
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); border-left: 1px solid var(--line); border-top: 1px solid var(--line); }
+.cal > * { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0; }
+.cal .wd { text-align: center; font-weight: 700; font-size: 12px; padding: 2px 0; }
+.cal button { background: var(--surface); border-top: 0; border-left: 0; text-align: right; padding: 3px 4px; min-height: 46px; display: flex; flex-direction: column; justify-content: space-between; }
+.cal button.out { cursor: default; } .cal button.sel { background: var(--tint); }
+.cal .d { font-size: 13px; } .cal .v { font-size: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; color: var(--sub); }
+
+/* グラフ */
+.chart { position: relative; margin: 6px 0; } .chart svg { display: block; width: 100%; height: auto; }
+.chart.donut { max-width: 250px; margin: 0 auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--sub); margin: 6px 0; }
+.legend i, .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.tip { position: absolute; pointer-events: none; background: #fff; color: #222; border: 1px solid #bbb; border-radius: 4px; padding: 5px 8px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.15); white-space: nowrap; display: none; z-index: 5; }
+.seg { display: inline-flex; border: 1px solid #c8c8c8; border-radius: var(--radius); overflow: hidden; margin: 4px 0; }
+.seg button { background: var(--surface); border: 0; border-right: 1px solid #c8c8c8; padding: 6px 12px; } .seg button:last-child { border-right: 0; }
+.seg button.on { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+tr.child td { font-size: 12px; color: var(--sub); background: var(--soft); } tr.child td:first-child { padding-left: 26px; }
+tr.tap { cursor: pointer; }
+.scroll { overflow-x: auto; }
+
+/* 編集の画面 */
+.sheet { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 20; display: flex; align-items: flex-end; justify-content: center; }
+.sheet > div { background: var(--surface); width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; border-radius: 12px 12px 0 0; padding: 16px 16px 22px; }
+.grab { display: none; }
+.sheet h4 { margin: 0 0 2px; font-size: 15px; } .sheet label { display: block; font-size: 12px; font-weight: 700; margin: 12px 0 4px; }
+.sheet select, .sheet input[type=text], .sheet input[type=number], .sheet input[type=date] { width: 100%; border: 1px solid #c8c8c8; border-radius: var(--radius); padding: 8px; background: var(--surface); font-size: 16px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.check { display: flex !important; align-items: center; gap: 8px; font-weight: 400 !important; font-size: 14px !important; }
+.check input { width: 18px; height: 18px; }
+.actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+.toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: #333; color: #fff; padding: 9px 14px; border-radius: 6px; font-size: 13px; z-index: 30; max-width: 92vw; }
+
+.lock { max-width: 340px; margin: 16vh auto 0; padding: 0 20px; text-align: center; }
+.lock h2 { border: 0; }
+.lock input[type=password] { width: 100%; border: 1px solid #c8c8c8; border-radius: var(--radius); padding: 10px; margin: 14px 0 8px; font-size: 16px; background: var(--surface); }
+.lock .err { color: #b3261e; min-height: 20px; font-size: 13px; }
+
+/* デザインごとに出し分ける部品（土台では出さない） */
+.gear, #menuBtn, .sbar, .sclose, .chev { display: none; }
+.cbody { min-width: 0; }
+
+/* ============ PC用（自分用のページだけ。IBM風は別の配置）: 左にメニュー、中身は2列 ============ */
+@media (min-width: 900px) {
+  body.role-owner:not(.theme-ibm) header { position: fixed; inset: 0 auto 0 0; width: 220px; border-bottom: 0; border-right: 1px solid var(--line); overflow-y: auto; }
+  body.role-owner:not(.theme-ibm) .brand { padding: 20px 18px 14px; }
+  body.role-owner:not(.theme-ibm) nav { flex-direction: column; padding: 4px 10px; overflow: visible; }
+  body.role-owner:not(.theme-ibm) nav button { flex: none; display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 12px; font-size: 14px; border-bottom: 0; border-left: 3px solid transparent; }
+  body.role-owner:not(.theme-ibm) nav button svg { display: block; width: 20px; height: 20px; flex: none; }
+  body.role-owner:not(.theme-ibm) nav button.on { border-left-color: var(--accent); background: var(--soft); }
+  body.role-owner:not(.theme-ibm) .wrap { margin-left: 220px; max-width: 1180px; padding: 6px 32px 60px; }
+  body.role-owner:not(.theme-ibm) .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 28px; align-items: start; }
+  body.role-owner:not(.theme-ibm) .grid .wide { grid-column: 1 / 3; }
+  body.role-owner:not(.theme-ibm) .grid.side { grid-template-columns: 400px minmax(0, 1fr); }
+  body.role-owner:not(.theme-ibm) .grid.side > .card:first-child { position: sticky; top: 8px; }
+  body.role-owner:not(.theme-ibm) .month { justify-content: flex-start; } body.role-owner:not(.theme-ibm) .period { text-align: left; }
+  body.role-owner:not(.theme-ibm) .hero { text-align: left; }
+  body.role-owner:not(.theme-ibm) .sheet { align-items: center; } body.role-owner:not(.theme-ibm) .sheet > div { border-radius: 12px; }
+  body.role-owner .toast { bottom: 24px; }
+}
+
+/* ============ Apple風（theme-apple）: Human Interface Guidelines に合わせた配置 ============
+   スマホ: 大きな題名 → 下に浮いたタブバー（5つ）、設定は右上のボタン。区切りのある一覧（題名は外、中身は角丸の白い面）。
+   編集は下から出るシートで、上に「キャンセル／保存」。押す場所は 44px 以上、本文 17px。PC: タブバーが左のサイドバーになる。 */
+.theme-apple {
+  --accent: #0088ff; --ink: #000; --sub: #636366; --muted: #8e8e93; --line: #e5e5ea; --hair: #e0e0e5;
+  --bg: #f2f2f7; --surface: #fff; --soft: #f2f2f7; --tint: #e5f2ff; --warn-bg: #fff4dc; --radius: 12px; --fill: rgba(118,118,128,.12);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+  font-size: 17px; line-height: 1.3;
+}
+.theme-apple header { background: transparent; border: 0; position: static; }
+.theme-apple .brand { display: none; }
+.theme-apple .wrap { padding: 0 16px 120px; }
+.theme-apple .pagehead { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding-top: 10px; }
+.theme-apple .title { display: block; font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: .01em; margin: 6px 0; }
+.theme-apple .gear { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.theme-apple .month { grid-column: 1 / 3; justify-content: flex-start; margin: 4px 0 2px; gap: 6px; }
+.theme-apple .month select { font-size: 17px; font-weight: 600; background: var(--surface); border-radius: 999px; padding: 0 16px; height: 44px; }
+.theme-apple .month button { border: 0; background: var(--surface); border-radius: 50%; width: 44px; height: 44px; padding: 0; color: var(--accent); font-size: 24px; }
+.theme-apple .period { text-align: left; font-size: 13px; color: var(--muted); margin: 6px 4px 0; }
+
+/* 区切りのある一覧: 題名は外、中身は白い面 */
+.theme-apple .card { margin: 26px 0 0; }
+.theme-apple h2 { font-size: 20px; line-height: 25px; font-weight: 600; border: 0; margin: 0 4px 8px; padding: 0; }
+.theme-apple h2 small { display: block; margin: 1px 0 0; font-size: 13px; line-height: 18px; color: var(--muted); }
+.theme-apple .cbody { background: var(--surface); border-radius: 16px; padding: 4px 16px; }
+.theme-apple .cbody > .chart { padding-top: 12px; } .theme-apple .cbody > .note:last-child, .theme-apple .cbody > .legend { padding-bottom: 8px; }
+.theme-apple h3 { border: 0; padding: 0; font-size: 13px; color: var(--muted); font-weight: 600; margin: 18px 0 2px; }
+.theme-apple .note { font-size: 13px; line-height: 18px; color: var(--muted); }
+
+.theme-apple .hero { background: var(--surface); border: 0; border-radius: 22px; padding: 18px 20px 6px; margin: 14px 0 0; text-align: left; }
+.theme-apple .hero .lab { font-size: 15px; font-weight: 400; color: var(--sub); }
+.theme-apple .hero .big { font-family: ui-rounded, "SF Pro Rounded", var(--font); font-size: 48px; line-height: 1.15; font-weight: 700; letter-spacing: -.01em; }
+.theme-apple .chip { border: 0; background: var(--fill); color: var(--sub); padding: 5px 12px; font-size: 13px; font-weight: 600; margin-top: 6px; }
+.theme-apple .chip.ok { background: #dcf5e2; color: #17722b; } .theme-apple .chip.plan { background: #ffecd2; color: #8a4b00; }
+.theme-apple .pair { margin-top: 14px; border-top: 1px solid var(--hair); }
+.theme-apple .pair > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; border-bottom: 1px solid var(--hair); }
+.theme-apple .pair > div:last-child { border-bottom: 0; }
+.theme-apple .pair span { font-size: 15px; color: var(--sub); } .theme-apple .pair b { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.theme-apple .btn { border: 0; background: var(--fill); border-radius: 999px; padding: 0 18px; font-weight: 600; min-height: 44px; color: var(--accent); }
+.theme-apple .btn.primary { background: var(--accent); color: #fff; } .theme-apple .btn.danger { color: #ff383c; }
+.theme-apple th, .theme-apple td { border: 0; border-bottom: 1px solid var(--hair); padding: 12px 0 12px 8px; } .theme-apple td:first-child, .theme-apple th:first-child { padding-left: 0; }
+.theme-apple th { color: var(--muted); font-weight: 400; font-size: 13px; } .theme-apple tr > th:first-child:not(:only-child) { color: var(--ink); font-size: 15px; }
+.theme-apple table tr:last-child td, .theme-apple table tr:last-child th { border-bottom: 0; }
+.theme-apple tr.sum td { background: none; font-weight: 600; } .theme-apple tr.grand td { background: none; font-size: 17px; font-weight: 700; }
+.theme-apple tr.child td { background: none; font-size: 15px; } .theme-apple .settle th, .theme-apple .settle td { font-size: 15px; padding: 11px 0 11px 6px; }
+.theme-apple .tx { grid-template-columns: minmax(0, 1fr) auto 12px; padding: 10px 0; min-height: 60px; align-items: center; }
+.theme-apple div.tx { grid-template-columns: minmax(0, 1fr) auto; }
+.theme-apple .tx .meta { font-size: 13px; color: var(--muted); grid-column: 1 / 3; }
+.theme-apple .chev { display: block; grid-column: 3; grid-row: 1 / 3; color: #c7c7cc; font-size: 22px; text-align: right; }
+.theme-apple .tx:last-of-type { border-bottom: 0; }
+.theme-apple .tag { border: 0; background: var(--fill); border-radius: 999px; padding: 1px 8px; font-size: 12px; } .theme-apple .tag.warn { background: #ffecd2; color: #8a4b00; }
+.theme-apple .more { margin: 0; border-top: 1px solid var(--hair); text-align: left; } .theme-apple .more:has(.btn) { border: 0; padding: 8px 0 12px; }
+.theme-apple .more button:not(.btn) { color: var(--accent); text-decoration: none; min-height: 44px; width: 100%; text-align: left; }
+.theme-apple .alert button { color: var(--accent); text-decoration: none; font-weight: 600; }
+.theme-apple .alert { border: 0; border-radius: 16px; padding: 12px 16px; background: var(--warn-bg); margin: 14px 0 0; font-size: 15px; color: #5c3a00; }
+.theme-apple .filters select, .theme-apple .filters input, .theme-apple .sdate input, .theme-apple .sheet select, .theme-apple .sheet input[type=text], .theme-apple .sheet input[type=number], .theme-apple .sheet input[type=date], .theme-apple .lock input[type=password] { border: 0; background: var(--fill); border-radius: 10px; padding: 0 12px; min-height: 44px; font-size: 17px; }
+.theme-apple .filters, .theme-apple .sdate { margin: 12px 0; }
+.theme-apple .cal { border: 0; gap: 2px; padding: 8px 0; } .theme-apple .cal > * { border: 0; }
+.theme-apple .cal .wd { color: var(--muted); font-weight: 600; font-size: 12px; }
+.theme-apple .cal button { border-radius: 12px; background: none; min-height: 50px; align-items: center; text-align: center; padding: 5px 0; }
+.theme-apple .cal .d { font-size: 17px; } .theme-apple .cal .v { font-size: 10px; }
+.theme-apple .cal button.sel { background: var(--accent); color: #fff; } .theme-apple .cal button.sel .v { color: #fff; }
+.theme-apple .meter { height: 6px; background: var(--fill); }
+.theme-apple .seg { display: flex; border: 0; background: var(--fill); border-radius: 9px; padding: 2px; margin: 12px 0; }
+.theme-apple .seg button { flex: 1; border: 0; background: none; border-radius: 7px; min-height: 32px; padding: 4px 8px; font-size: 15px; }
+.theme-apple .seg button.on { background: #fff; color: var(--ink); font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,.14); }
+.theme-apple .subseg { margin: 14px 0 0; }
+.theme-apple .tip { border: 0; border-radius: 12px; box-shadow: 0 4px 18px rgba(0,0,0,.18); }
+
+/* 編集のシート: つまみ、上にキャンセル／保存 */
+.theme-apple .sheet > div { border-radius: 20px 20px 0 0; padding: 6px 16px calc(24px + env(safe-area-inset-bottom)); background: #f2f2f7; }
+.theme-apple .grab { display: block; width: 36px; height: 5px; border-radius: 3px; background: #c7c7cc; margin: 0 auto 2px; }
+.theme-apple .sbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; min-height: 44px; margin: 0 -6px 8px; }
+.theme-apple .sbar button { border: 0; background: none; color: var(--accent); min-height: 44px; padding: 0 6px; font-size: 17px; justify-self: start; }
+.theme-apple .sbar .go { justify-self: end; font-weight: 600; } .theme-apple .sbar b { font-weight: 600; }
+.theme-apple .sheet h4 { font-size: 20px; line-height: 25px; margin: 4px 0; } .theme-apple .sheet label { font-size: 13px; font-weight: 400; color: var(--sub); margin: 14px 4px 6px; }
+.theme-apple .sheet select, .theme-apple .sheet input[type=text], .theme-apple .sheet input[type=number], .theme-apple .sheet input[type=date] { background: #fff; }
+.theme-apple .check { font-size: 17px !important; color: var(--ink) !important; min-height: 44px; background: #fff; border-radius: 10px; padding: 0 12px; margin: 8px 0 0 !important; }
+.theme-apple .check input { width: 22px; height: 22px; accent-color: var(--accent); }
+.theme-apple .actions [data-x=cancel], .theme-apple .actions [data-x=save] { display: none; }
+.theme-apple .actions .btn.danger { flex: 1; background: #fff; border-radius: 10px; }
+.theme-apple .toast { border-radius: 999px; background: rgba(40,40,42,.92); bottom: 104px; font-size: 15px; }
+.theme-apple .lock h2 { font-size: 22px; } .theme-apple .lock .check { background: none; }
+
+@media (max-width: 899px) {
+  /* スマホ: 下に浮いたタブバー（5つ）。「取込」は右上のボタンから */
+  .theme-apple nav { position: fixed; left: 16px; right: 16px; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 10; max-width: 480px; margin: 0 auto; padding: 5px; overflow: visible; border-radius: 999px;
+    background: rgba(255,255,255,.74); -webkit-backdrop-filter: saturate(180%) blur(24px); backdrop-filter: saturate(180%) blur(24px); box-shadow: 0 8px 30px rgba(0,0,0,.16), 0 0 0 .5px rgba(0,0,0,.1); }
+  .theme-apple nav:empty { display: none; }
+  .theme-apple nav button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border: 0; border-radius: 999px; padding: 4px 0; min-height: 50px; font-size: 11px; color: var(--sub); min-width: 0; }
+  .theme-apple nav button svg { display: block; } .theme-apple nav button.on { color: var(--accent); font-weight: 600; background: var(--fill); }
+  .theme-apple nav .aux { display: none; }
+  .theme-apple .sub-cal .k-tx, .theme-apple .sub-tx .k-cal { display: none; }
+}
+@media (min-width: 900px) {
+  /* PC: タブバーのかわりに左のサイドバー。編集は中央のシート */
+  body.theme-apple.role-owner header { background: #e9e9ee; border-right: 1px solid #d9d9de; position: fixed; width: 250px; }
+  body.theme-apple.role-owner .brand { display: flex; padding: 24px 20px 12px; } .theme-apple .brand .logo { border-radius: 8px; } .theme-apple .brand b { font-size: 20px; }
+  body.theme-apple.role-owner nav { padding: 4px 12px; gap: 2px; }
+  body.theme-apple.role-owner nav button { border: 0; border-radius: 10px; color: var(--ink); font-size: 15px; min-height: 44px; padding: 0 12px; } body.theme-apple.role-owner nav button svg { color: var(--accent); }
+  body.theme-apple.role-owner nav button.on { background: rgba(0,0,0,.08); font-weight: 600; }
+  body.theme-apple.role-owner .wrap { margin-left: 250px; max-width: 1120px; padding: 10px 32px 60px; }
+  body.theme-apple.role-owner .gear, body.theme-apple.role-owner .subseg { display: none; }
+  body.theme-apple.role-owner .grid { gap: 0 24px; }
+  .theme-apple .sheet { align-items: center; } .theme-apple .sheet > div { border-radius: 20px; } .theme-apple .grab { display: none; }
+  .theme-apple .toast { bottom: 28px; }
+}
+
+/* ============ IBM風（theme-ibm）: Carbon Design System に合わせた配置 ============
+   上に高さ48pxの黒い帯、メニューは左から出るパネル（広い画面では出したまま）。灰色の地に白いタイル、角は丸めず影なし。
+   いちばん上は数字のタイル（大事な数字ほど濃く大きく）、明細は表（見出しは灰色）、切り替えは下線つきタブ。
+   編集は中央のモーダルで、右上に×、下に大きなボタン2つ。間隔は 8 / 16 / 24 / 32 / 48px。 */
+.theme-ibm {
+  --accent: #0f62fe; --ink: #161616; --sub: #525252; --muted: #6f6f6f; --line: #e0e0e0; --hair: #e0e0e0;
+  --bg: #f4f4f4; --surface: #fff; --soft: #f4f4f4; --tint: #edf5ff; --warn-bg: #fcf4d6; --radius: 0;
+  --font: "IBM Plex Sans JP", "IBM Plex Sans", "Helvetica Neue", "Hiragino Sans", "Yu Gothic UI", Arial, sans-serif;
+  font-size: 14px; line-height: 1.43; letter-spacing: .16px;
+}
+.theme-ibm header { position: static; border: 0; background: none; }
+.theme-ibm .brand { position: fixed; top: 0; left: 0; right: 0; height: 48px; z-index: 12; background: #161616; color: #fff; max-width: none; margin: 0; padding: 0 16px 0 0; gap: 0; }
+.theme-ibm .brand .logo { display: none; } .theme-ibm .brand b { font-size: 14px; font-weight: 600; padding-left: 16px; } .theme-ibm .brand small { color: #c6c6c6; font-size: 12px; }
+.theme-ibm.role-owner #menuBtn { display: grid; place-items: center; width: 48px; height: 48px; border: 0; background: none; color: #fff; }
+.theme-ibm.role-owner .brand b { padding-left: 8px; }
+.theme-ibm #menuBtn:hover, .theme-ibm.nav-open #menuBtn { background: #393939; }
+.theme-ibm nav { position: fixed; top: 48px; left: 0; bottom: 0; width: 256px; z-index: 11; background: var(--surface); flex-direction: column; margin: 0; max-width: none; padding: 16px 0; border-right: 1px solid var(--line); overflow-y: auto; transform: translateX(-100%); transition: transform .11s cubic-bezier(.2,0,.38,.9); }
+.theme-ibm nav:empty { display: none; }
+.theme-ibm.nav-open nav { transform: none; }
+.theme-ibm.nav-open::before { content: ""; position: fixed; inset: 48px 0 0 0; background: rgba(22,22,22,.5); z-index: 10; }
+.theme-ibm nav button { flex: none; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 16px 0 13px; text-align: left; border: 0; border-left: 3px solid transparent; font-size: 14px; font-weight: 600; color: var(--sub); }
+.theme-ibm nav button svg { display: block; width: 20px; height: 20px; flex: none; }
+.theme-ibm nav button:hover { background: #e8e8e8; color: var(--ink); } .theme-ibm nav button.on { background: #e0e0e0; border-left-color: var(--accent); color: var(--ink); }
+.theme-ibm .wrap { max-width: 1584px; margin: 0; padding: 48px 16px 48px; }
+.theme-ibm .pagehead { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 16px; padding: 24px 0 16px; }
+.theme-ibm .title { display: block; font-size: 28px; line-height: 36px; font-weight: 400; letter-spacing: 0; margin: 0; }
+.theme-ibm .month { margin: 0; gap: 0; }
+.theme-ibm .month select { font-size: 14px; font-weight: 400; background: var(--surface); border-bottom: 1px solid #8d8d8d; height: 40px; padding: 0 16px; text-align: left; }
+.theme-ibm .month button { border: 0; background: none; width: 40px; height: 40px; padding: 0; } .theme-ibm .month button:hover { background: #e8e8e8; }
+.theme-ibm .period { text-align: left; font-size: 12px; margin: -8px 0 16px; }
+
+/* 数字のタイル */
+.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.kpi { background: var(--surface); padding: 16px; min-height: 96px; min-width: 0; }
+.kpi .lab { font-size: 12px; line-height: 16px; letter-spacing: .32px; color: var(--sub); }
+.kpi .val { font-size: 24px; line-height: 32px; margin-top: 8px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kpi .sub { font-size: 12px; line-height: 16px; color: var(--muted); margin-top: 4px; }
+.kpi.main, .kpi.state { grid-column: 1 / 3; }
+.kpi.main { background: var(--accent); color: #fff; } .kpi.main .lab, .kpi.main .sub { color: #fff; }
+.kpi.main .val { font-size: 42px; line-height: 50px; font-weight: 300; }
+.kpi.state { min-height: 0; display: flex; align-items: center; justify-content: space-between; } .kpi.state .val { margin: 0; line-height: 24px; }
+.theme-ibm .chip { border: 0; margin: 0; height: 24px; line-height: 24px; padding: 0 8px; background: #e0e0e0; color: #161616; font-weight: 400; font-size: 12px; }
+.theme-ibm .chip.ok { background: #a7f0ba; color: #044317; } .theme-ibm .chip.plan { background: #fddc69; color: #483700; }
+
+/* タイル（カード） */
+.theme-ibm .grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.theme-ibm .card { background: var(--surface); padding: 16px; margin: 0; min-width: 0; }
+.theme-ibm h2 { border: 0; font-size: 20px; line-height: 28px; font-weight: 400; letter-spacing: 0; margin: 0 0 16px; padding: 0; }
+.theme-ibm h2 small { display: block; margin: 0; font-size: 12px; line-height: 16px; letter-spacing: .32px; color: var(--sub); }
+.theme-ibm h3 { border: 0; padding: 0; font-size: 14px; font-weight: 600; margin: 24px 0 8px; }
+.theme-ibm .note { font-size: 12px; line-height: 16px; letter-spacing: .32px; color: var(--muted); }
+
+/* 表: 見出しは灰色、行の高さ 40px（明細は 48px）、タイルの端まで広げる */
+.theme-ibm .scroll { margin: 0 -16px; }
+.theme-ibm th, .theme-ibm td { border: 0; border-bottom: 1px solid var(--line); padding: 0 16px; height: 40px; }
+.theme-ibm tr > th:first-child { font-weight: 400; } .theme-ibm tr:first-child > th:not(:only-of-type) { background: #e0e0e0; font-weight: 600; }
+.theme-ibm .settle th, .theme-ibm .settle td { padding: 4px 8px; } .theme-ibm .settle td:first-child, .theme-ibm .settle th:first-child { padding-left: 16px; } .theme-ibm .settle td:last-child, .theme-ibm .settle th:last-child { padding-right: 16px; }
+.theme-ibm tr.sum td { background: #f4f4f4; font-weight: 600; } .theme-ibm tr.grand td { background: #d0e2ff; font-weight: 600; font-size: 14px; }
+.theme-ibm tr.child td { background: #f4f4f4; } .theme-ibm tr.tap:hover td { background: #e8e8e8; }
+.dt td, .dt th { white-space: nowrap; } .dt td { height: 48px; color: var(--sub); }
+.dt .c-n { width: 100%; max-width: 0; white-space: normal; text-align: left; padding-top: 6px; padding-bottom: 6px; }
+.dt .name { display: block; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dt .meta { display: flex; flex-wrap: wrap; gap: 2px 8px; font-size: 12px; line-height: 16px; color: var(--muted); align-items: center; }
+.dt .meter { display: block; margin: 4px 0 0; max-width: 320px; }
+.dt .c-h { display: none; }
+.theme-ibm td .meter { display: block; height: 4px; margin-top: 4px; background: #e0e0e0; }
+.theme-ibm .tx { padding: 12px 0; }
+.theme-ibm .tag { border: 0; background: #e0e0e0; border-radius: 999px; padding: 0 8px; font-size: 12px; color: #161616; } .theme-ibm .tag.warn { background: #fddc69; color: #483700; }
+.theme-ibm .hc i, .theme-ibm .dot, .theme-ibm .legend i, .theme-ibm .swatch, .theme-ibm .meter, .theme-ibm .meter i { border-radius: 0; }
+.theme-ibm .more { margin: 16px 0 0; } .theme-ibm .more button:not(.btn), .theme-ibm .alert button { color: var(--accent); text-decoration: none; }
+.theme-ibm .alert { border: 0; border-left: 3px solid #f1c21b; background: var(--warn-bg); color: #161616; padding: 14px 16px; margin: 0 0 16px; font-size: 14px; }
+
+/* ボタン・入力欄・タブ */
+.theme-ibm .btn { border: 1px solid var(--accent); color: var(--accent); background: transparent; min-height: 48px; padding: 0 64px 0 16px; text-align: left; }
+.theme-ibm .btn:hover { background: #0050e6; border-color: #0050e6; color: #fff; }
+.theme-ibm .btn.primary { background: var(--accent); color: #fff; font-weight: 400; } .theme-ibm .btn.danger { border-color: #da1e28; color: #da1e28; } .theme-ibm .btn.danger:hover { background: #da1e28; color: #fff; }
+.theme-ibm .filters .btn { min-height: 40px; padding: 0 16px; }
+.theme-ibm .filters select, .theme-ibm .filters input, .theme-ibm .sdate input, .theme-ibm .sheet select, .theme-ibm .sheet input[type=text], .theme-ibm .sheet input[type=number], .theme-ibm .sheet input[type=date], .theme-ibm .lock input[type=password] { border: 0; border-bottom: 1px solid #8d8d8d; background: #f4f4f4; padding: 0 16px; height: 40px; }
+.theme-ibm .lock input[type=password] { background: #fff; }
+.theme-ibm :focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.theme-ibm .filters { gap: 8px; margin: 0 0 16px; } .theme-ibm .sdate { gap: 16px; }
+.theme-ibm .ltabs { display: flex; margin: 0 0 16px; box-shadow: inset 0 -2px 0 var(--line); }
+.theme-ibm .ltabs button { min-width: 128px; height: 40px; padding: 0 16px; text-align: left; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--sub); }
+.theme-ibm .ltabs button.on { border-bottom-color: var(--accent); color: var(--ink); font-weight: 600; }
+.theme-ibm .cal { border-color: var(--line); } .theme-ibm .cal button.sel { background: var(--accent); color: #fff; } .theme-ibm .cal button.sel .v { color: #fff; }
+.theme-ibm .seg { border: 0; } .theme-ibm .seg button { border: 0; background: #e0e0e0; height: 40px; padding: 0 16px; } .theme-ibm .seg button.on { background: #161616; color: #fff; font-weight: 400; }
+.theme-ibm .tip { border-radius: 0; } .theme-ibm .toast { border-radius: 0; background: #393939; border-left: 3px solid #42be65; bottom: 24px; }
+
+/* 編集のモーダル: 右上に×、下に大きなボタン2つ。せまい画面では全画面 */
+.theme-ibm .sheet { align-items: center; background: rgba(22,22,22,.5); }
+.theme-ibm .sheet > div { position: relative; display: flex; flex-direction: column; border-radius: 0; padding: 16px 16px 0; max-width: 640px; height: 100%; max-height: none; }
+.theme-ibm .sheet > div > * { flex: none; }
+.theme-ibm .sclose { display: grid; place-items: center; position: absolute; top: 0; right: 0; width: 48px; height: 48px; border: 0; background: none; font-size: 16px; } .theme-ibm .sclose:hover { background: #e8e8e8; }
+.theme-ibm .sheet h4 { font-size: 20px; line-height: 28px; font-weight: 400; letter-spacing: 0; padding-right: 40px; margin-bottom: 8px; }
+.theme-ibm .sheet label { font-size: 12px; font-weight: 400; letter-spacing: .32px; color: var(--sub); margin: 24px 0 8px; } .theme-ibm .check { margin: 16px 0 0 !important; color: var(--ink) !important; }
+.theme-ibm .row2 { gap: 16px; }
+.theme-ibm .actions { position: sticky; bottom: 0; margin: auto -16px 0; padding-top: 32px; gap: 0; flex-wrap: nowrap; background: linear-gradient(transparent, var(--surface) 32px); }
+.theme-ibm .actions .btn { flex: 1; min-height: 64px; padding: 14px 16px 0; border: 0; display: block; }
+.theme-ibm .actions [data-x=cancel] { background: #393939; color: #fff; } .theme-ibm .actions [data-x=cancel]:hover { background: #474747; }
+.theme-ibm .actions .btn.danger { background: #da1e28; color: #fff; }
+
+@media (max-width: 1055px) { .theme-ibm .sub-cal .k-tx, .theme-ibm .sub-tx .k-cal { display: none; } }
+@media (min-width: 672px) {
+  .theme-ibm .wrap { padding: 48px 32px 48px; }
+  .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } .kpi.main, .kpi.state { grid-column: auto; }
+  .kpi.main .val { font-size: 32px; line-height: 40px; font-weight: 400; } .kpi .val { font-size: 28px; line-height: 36px; }
+  .kpi.state { display: block; min-height: 96px; } .kpi.state .val { margin-top: 12px; }
+  .dt .c-h { display: table-cell; } .dt .meta .hc { display: none; }
+  .theme-ibm .sheet > div { height: auto; max-height: 90vh; }
+}
+@media (min-width: 1056px) {
+  /* 広い画面: メニューは出したまま、中身は 2:1 の2列 */
+  .theme-ibm.role-owner #menuBtn { display: none; } .theme-ibm.role-owner .brand b { padding-left: 16px; }
+  .theme-ibm.role-owner nav { transform: none; } .theme-ibm.nav-open::before { display: none; }
+  .theme-ibm.role-owner .wrap { margin-left: 256px; }
+  .theme-ibm nav button { min-height: 40px; }
+  .theme-ibm.role-owner .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; }
+  .theme-ibm.role-owner .grid.g21 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+  .theme-ibm.role-owner .grid .wide { grid-column: 1 / 3; }
+  .theme-ibm .kpis { gap: 32px; margin-bottom: 32px; } .theme-ibm.role-owner .ltabs { display: none; }
+  .theme-ibm.role-partner .wrap { max-width: 1056px; margin: 0 auto; }
+}
+</style>
+</head>
+<body class="theme-apple">
+<header>
+  <div class="brand"><button id="menuBtn" data-act="menu" aria-label="メニュー"><svg viewBox="0 0 20 20" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M2 4h16v1.5H2zM2 9.25h16v1.5H2zM2 14.5h16V16H2z"/></svg></button><span class="logo">家</span><b>家計簿</b><small id="brandNote"></small></div>
+  <nav id="nav"></nav>
+</header>
+<main class="wrap" id="app"></main>
+<script id="payload" type="application/json">{"enc":true,"role":"partner","iter":600000,"salt":"YfUhl9UdGUHb8ileBiDIgw==","iv":"ANLWu+MDL3YCdhyu","ct":"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","theme":"apple"}</script>
+<script>// 家計簿の計算の中心。Node（集計）とブラウザ（画面）の両方で同じものを使う
+(function (root, factory) {
+  if (typeof module === "object" && module.exports) module.exports = factory();
+  else root.Kakeibo = factory();
+})(typeof self !== "undefined" ? self : this, function () {
+  // 家計（折半）の集計表の分類。配偶者用の表はこの8つ＋家賃
+  const HCATS = ["スーパー", "外食", "カフェ", "惣菜", "コンビニ", "日用品", "光熱費", "その他"];
+
+  // マネーフォワード式の分類（大項目 > 中項目）
+  const TAXONOMY = {
+    "食費": ["食料品", "外食", "カフェ", "コンビニ", "惣菜", "会社ランチ", "食費", "その他食費"],
+    "日用品": ["日用品", "ドラッグストア", "その他日用品"],
+    "趣味・娯楽": ["映画・音楽・ゲーム", "ライブ", "スタジオ", "旅行", "スポーツ", "本", "秘密の趣味", "その他趣味・娯楽"],
+    "交際費": ["交際費", "飲み会", "プレゼント代", "冠婚葬祭", "その他交際費"],
+    "交通費": ["交通費", "タクシー", "飛行機", "その他交通費"],
+    "衣服・美容": ["衣服", "美容院・理髪", "クリーニング", "化粧品", "その他衣服・美容"],
+    "健康・医療": ["医療費", "薬", "ボディケア", "温泉", "フィットネス", "その他健康・医療"],
+    "自動車": ["ガソリン", "駐車場", "道路料金", "その他自動車"],
+    "教養・教育": ["書籍", "新聞・雑誌", "習いごと", "その他教養・教育"],
+    "特別な支出": ["家具・家電", "ふるさと納税", "その他特別な支出"],
+    "現金・カード": ["電子マネー", "カード引き落とし", "ATM引き出し", "その他現金・カード"],
+    "水道・光熱費": ["電気代", "ガス代", "水道代", "その他水道・光熱費"],
+    "通信費": ["通信", "サブスク", "AI", "携帯電話", "インターネット", "その他通信費"],
+    "住宅": ["家賃・地代", "その他住宅"],
+    "税・社会保障": ["NISA", "ふるさと納税", "所得税・住民税", "その他税・社会保障"],
+    "保険": ["生命保険", "医療保険", "その他保険"],
+    "その他": ["雑費", "ドラムレッスン費用", "寄付金"],
+    "収入": ["その他入金", "給与", "家族カード代", "割り勘のお金", "フリマ売り上げ"],
+    "未分類": ["未分類"],
+  };
+  const UNKNOWN = "未分類>未分類";
+
+  // 店名をくらべやすい形にそろえる（全角半角・ひらがな/カタカナ・小さい「ッ」・長音や記号の違いを無視）
+  const SMALL = { "ァ": "ア", "ィ": "イ", "ゥ": "ウ", "ェ": "エ", "ォ": "オ", "ッ": "ツ", "ャ": "ヤ", "ュ": "ユ", "ョ": "ヨ", "ヮ": "ワ", "ヵ": "カ", "ヶ": "ケ" };
+  function norm(s) {
+    let t = String(s == null ? "" : s).normalize("NFKC").toUpperCase();
+    t = t.replace(/\/(ID|NFC|AP|QP)$/g, "").replace(/\(サインレス\)/g, "");
+    t = t.replace(/^(AP\/QP\/|PAYPAY|ペイペイ|ラクテンペイ)/, "");
+    t = t.replace(/[ぁ-ゖ]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60));
+    t = t.replace(/[ァィゥェォッャュョヮヵヶ]/g, (c) => SMALL[c]);
+    t = t.replace(/[ー―‐−–—\-ｰ~〜]/g, "ー");
+    return t.replace(/[\s・.,/*'’‘ʼ′`´"“”!?()「」『』&@:;#+_●]/g, "");
+  }
+
+  // ---- CSV ----
+  function parseCsv(text) {
+    const rows = []; let row = [], cur = "", q = false;
+    text = text.replace(/^﻿/, "");
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+      else if (c === '"') q = true;
+      else if (c === ",") { row.push(cur); cur = ""; }
+      else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(cur); rows.push(row); row = []; cur = ""; }
+      else cur += c;
+    }
+    if (cur !== "" || row.length) { row.push(cur); rows.push(row); }
+    return rows;
+  }
+  const toNum = (v) => { const n = Number(String(v == null ? "" : v).replace(/[,円\s]/g, "")); return isFinite(n) && String(v).trim() !== "" ? n : null; };
+  const toDate = (v) => { const m = String(v).trim().match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/); return m ? `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}` : null; };
+
+  // 三井住友カードの明細CSV（速報・確定どちらでも）を取引の一覧にする
+  //   速報: 利用日, 店名, ご本人/ご家族, 支払方法, , 支払月, 金額, 金額
+  //   確定: 「〇〇 様」の見出し行のあとに 利用日, 店名, 金額, … が続く。最初に出てくる名義が本人
+  function parseCard(text) {
+    const txns = [], seen = {}; let section = null, first = null;
+    for (const r of parseCsv(text)) {
+      const a = String(r[0] || "").trim();
+      if (/様$/.test(a)) { section = a; if (!first) first = a; continue; }
+      const date = toDate(a), name = String(r[1] || "").trim();
+      if (!date || !name) continue;
+      const c = String(r[2] || "").trim();
+      let holder, amount;
+      if (c === "ご本人" || c === "ご家族") { holder = c === "ご本人" ? "本人" : "家族"; amount = toNum(r[6]); if (amount == null) amount = toNum(r[7]); }
+      else { holder = !section || section === first ? "本人" : "家族"; amount = toNum(r[2]); if (amount == null) amount = toNum(r[5]); }
+      if (amount == null) continue;
+      if (holder !== "家族") continue;   // 本人カードは対象外。読み込みの時点で捨てる
+      const key = `${date}_${norm(name)}_${amount}`;
+      seen[key] = (seen[key] || 0) + 1;
+      // 表示用の店名は全角英数字を半角にそろえる（ＮＦＣ → NFC）
+      txns.push({ id: `${key}_${seen[key]}`, date, name: name.normalize("NFKC").replace(/\s+/g, " "), holder, amount });
+    }
+    txns.sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : 0));
+    return txns;
+  }
+  // 家族カードの行だけにしたCSVを作る（保存用。本人カードの利用を残さないため）
+  function toCsv(txns) {
+    const q = (v) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+    return txns.map((t) => [t.date.replace(/-/g, "/"), q(t.name), "ご家族", "1回払い", "", "", t.amount, t.amount].join(",")).join("\r\n") + "\r\n";
+  }
+  // そのCSVが何月分か（利用日がいちばん多い月）
+  function monthOf(txns) {
+    const c = {}; let best = null;
+    for (const t of txns) { const m = t.date.slice(0, 7); c[m] = (c[m] || 0) + 1; if (!best || c[m] > c[best]) best = m; }
+    return best;
+  }
+
+  // ---- 分類 ----
+  // 優先順: 手修正 > マネーフォワードのルール（店名一致）> キーワード（下の行が優先）> 辞書（長い語が優先）> AIの推測 > 未分類
+  function prepRules(rules) {
+    const mf = (rules.mf || []).map((r) => ({ n: norm(r.name), cat: r.cat })).filter((r) => r.n);
+    const keywords = (rules.keywords || []).map((r) => ({ n: norm(r.kw), cat: r.cat, shared: !!r.shared })).filter((r) => r.n);
+    const dict = (rules.dict || []).map((r) => ({ n: norm(r[0]), cat: r[1] })).filter((r) => r.n.length >= 2).sort((a, b) => b.n.length - a.n.length);
+    const mfExact = {}; for (const r of mf) if (!(r.n in mfExact)) mfExact[r.n] = r.cat;
+    return { mf, mfExact, keywords, dict, ai: rules.ai || {} };
+  }
+  function classify(name, P) {
+    const n = norm(name);
+    let shared = false, kw = null;
+    for (const r of P.keywords) if (n.includes(r.n)) { kw = r; if (r.shared) shared = true; }
+    if (P.mfExact[n]) return { cat: P.mfExact[n], src: "ルール", shared };
+    for (const r of P.mf) if (r.n.length >= 5 && n.includes(r.n)) return { cat: r.cat, src: "ルール", shared };
+    if (kw) return { cat: kw.cat, src: "キーワード", shared };
+    for (const r of P.dict) if (n.includes(r.n)) return { cat: r.cat, src: "推測", shared };
+    if (P.ai[n] && P.ai[n] !== UNKNOWN) return { cat: P.ai[n], src: "AI推測", shared };
+    return { cat: UNKNOWN, src: "未分類", shared };
+  }
+  // マネーフォワード式の分類 → 家計の集計表の分類
+  function hcatOf(cat) {
+    const [big, mid] = String(cat).split(">");
+    if (big === "食費") return { 食料品: "スーパー", 外食: "外食", 会社ランチ: "外食", カフェ: "カフェ", コンビニ: "コンビニ", 惣菜: "惣菜" }[mid] || "その他";
+    if (big === "日用品") return "日用品";
+    if (big === "水道・光熱費") return "光熱費";
+    return "その他";
+  }
+
+  // ---- 1か月分の計算 ----
+  // overrides[id] = { cat, hcat, shared, r, a, memo }（どれも省略可） / manual = カード以外の支出
+  function computeMonth(txns, P, overrides, manual, cfg) {
+    overrides = overrides || {}; manual = manual || [];
+    const util = cfg.utilityPartnerRatio == null ? 0.4 : cfg.utilityPartnerRatio;
+    const share = (amount, hcat, o) => {
+      let a;
+      if (o && o.a != null) a = o.a; else if (o && o.r != null) a = amount - o.r;
+      else a = amount * (hcat === "光熱費" ? util : 0.5);
+      return a;
+    };
+    const rows = txns.map((t) => {
+      const o = overrides[t.id] || {}, c = classify(t.name, P);
+      const cat = o.cat || c.cat, src = o.cat ? "手修正" : c.src;
+      const shared = o.shared != null ? !!o.shared : true;   // 家族カードの利用は、外さないかぎり家計（折半）に入る
+      const hcat = o.hcat || hcatOf(cat);
+      const row = { ...t, cat, src, shared, hcat, memo: o.memo || "", custom: o.a != null || o.r != null };
+      if (shared) { row.a = share(t.amount, hcat, o); row.r = t.amount - row.a; }
+      return row;
+    });
+    const extra = manual.map((m) => { const a = share(m.amount, m.hcat, m); return { ...m, shared: true, manual: true, a, r: m.amount - a, custom: m.a != null || m.r != null }; });
+
+    const table = HCATS.map((h) => {
+      const list = rows.filter((r) => r.shared && r.hcat === h).concat(extra.filter((r) => r.hcat === h));
+      const total = list.reduce((s, r) => s + r.amount, 0);
+      const sum = Math.round(list.reduce((s, r) => s + r.a, 0) * 100) / 100;
+      // 相手の分は端数を切り捨て（光熱費は10円未満を切り捨て）。端数は自分の分に入る
+      const a = h === "光熱費" ? Math.floor(sum / 10) * 10 : Math.floor(sum);
+      return { hcat: h, total, r: total - a, a, count: list.length };
+    });
+    const living = table.reduce((s, x) => ({ total: s.total + x.total, r: s.r + x.r, a: s.a + x.a }), { total: 0, r: 0, a: 0 });
+    const rent = { r: (cfg.rent && cfg.rent.r) || 0, a: (cfg.rent && cfg.rent.a) || 0 };
+    rent.total = rent.r + rent.a;
+    const grand = { total: living.total + rent.total, r: living.r + rent.r, a: living.a + rent.a };
+    const dates = txns.map((t) => t.date).sort();
+    return {
+      rows, extra,
+      settlement: { table, living, rent, grand, from: dates[0] || null, to: dates[dates.length - 1] || null },
+      checks: {
+        unknown: rows.filter((r) => r.src === "未分類").length,
+        guessed: rows.filter((r) => r.src === "推測" || r.src === "AI推測").length,
+        sharedOther: rows.filter((r) => r.shared && r.hcat === "その他").length,
+      },
+    };
+  }
+
+  return { HCATS, TAXONOMY, UNKNOWN, norm, parseCsv, parseCard, toCsv, monthOf, prepRules, classify, hcatOf, computeMonth };
+});
+</script>
+<script>// 家計簿の画面。owner（すべて見られる・直せる）と partner（集計と家計の明細を見るだけ）で同じファイルを使う
+(function () {
+  const K = window.Kakeibo;
+  const $ = (s, el) => (el || document).querySelector(s);
+  const app = $("#app");
+  const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const yen = (n) => `${Math.round(n).toLocaleString("ja-JP")}円`;
+  const WD = ["日", "月", "火", "水", "木", "金", "土"];
+  const md = (d) => { const x = new Date(d + "T00:00:00"); return `${x.getMonth() + 1}/${x.getDate()}(${WD[x.getDay()]})`; };
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  // 家計の分類ごとの色は固定（7色＋「その他」は灰色）
+  const HCOLOR = { "スーパー": "--s1", "外食": "--s2", "カフェ": "--s3", "惣菜": "--s4", "コンビニ": "--s5", "日用品": "--s6", "光熱費": "--s7", "その他": "--other" };
+  const color = (h) => `var(${HCOLOR[h] || "--other"})`;
+
+  let D, P, S = { tab: "home", sub: null, month: null, scope: "all", hcat: "", q: "", day: null, open: {} };
+  const cache = {};
+  const months = () => Object.keys(D.months).sort();
+  const calc = (m) => cache[m] || (cache[m] = K.computeMonth(D.months[m].txns, P, D.overrides, D.manual.filter((x) => x.month === m), D.cfg));
+  const dirty = () => { for (const k in cache) delete cache[k]; };
+  const prevMonth = () => { const ms = months(); return ms[ms.indexOf(S.month) - 1] || null; };
+
+  // ---------- デザインの切り替え（端末ごとに記憶） ----------
+  const payload = JSON.parse($("#payload").textContent), PWKEY = `kakeibo-pw-${payload.role}`, THEMEKEY = "kakeibo-theme";
+  const THEMES = { apple: "Apple風", ibm: "IBM風", mf: "マネーフォワード風" };
+  const theme = () => { let t = null; try { t = localStorage.getItem(THEMEKEY); } catch (e) {} return THEMES[t] ? t : THEMES[payload.theme] ? payload.theme : "apple"; };
+  const applyTheme = () => { document.body.className = `theme-${theme()} role-${payload.role}`; };
+  applyTheme();
+
+  // ---------- 保存先（GitHub の非公開リポジトリ / PC での確認用サーバー） ----------
+  const b64e = (bytes) => { let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
+  const b64d = (s) => Uint8Array.from(atob(s.replace(/\s/g, "")), (c) => c.charCodeAt(0));
+  const store = {
+    get on() { return D.backend && D.backend.type !== "none"; },
+    async gh(path, opt) {
+      const B = D.backend;
+      const r = await fetch(`https://api.github.com/repos/${B.repo}/contents/${path}${opt && opt.method ? "" : `?ref=${B.branch}`}`, {
+        ...opt, headers: { Authorization: `Bearer ${B.token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" } });
+      if (!r.ok && r.status !== 404) throw new Error(`保存先エラー ${r.status}`);
+      return r.status === 404 ? null : r.json();
+    },
+    async read(path) {
+      if (D.backend.type === "local") { const r = await fetch(`/api/file?path=${encodeURIComponent(path)}`); if (!r.ok) throw new Error("読み込みエラー"); return { json: await r.json() }; }
+      const f = await this.gh(path);
+      return f ? { json: JSON.parse(new TextDecoder().decode(b64d(f.content))), sha: f.sha } : { json: null };
+    },
+    async write(path, bytes, sha, message) {
+      if (D.backend.type === "local") { const r = await fetch(`/api/file?path=${encodeURIComponent(path)}`, { method: "PUT", body: bytes }); if (!r.ok) throw new Error("保存エラー"); return; }
+      await this.gh(path, { method: "PUT", body: JSON.stringify({ message, content: b64e(bytes), branch: D.backend.branch, ...(sha ? { sha } : {}) }) });
+    },
+    // 最新を読み直してから変更を加えて保存する（ほかの端末での変更を消さないため）
+    async update(path, fallback, fn, message) {
+      const cur = await this.read(path);
+      const next = fn(cur.json == null ? fallback : cur.json);
+      await this.write(path, new TextEncoder().encode(JSON.stringify(next, null, 1) + "\n"), cur.sha, message);
+      return next;
+    },
+  };
+  let toastT;
+  const toast = (msg) => { let t = $(".toast"); if (!t) { t = document.createElement("div"); t.className = "toast"; document.body.appendChild(t); } t.textContent = msg; clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 3500); };
+  async function save(path, fallback, fn, message, apply) {
+    if (!store.on) { apply(fn(fallback)); toast("この画面では保存されません（確認用）"); return true; }
+    try { apply(await store.update(path, fallback, fn, message)); toast("保存しました"); return true; }
+    catch (e) { toast(`保存できませんでした：${e.message}`); return false; }
+  }
+
+  // ---------- 共通の部品 ----------
+  const card = (title, small, body, cls) => `<section class="card ${cls || ""}">${title ? `<h2>${title}${small ? `<small>${small}</small>` : ""}</h2>` : ""}<div class="cbody">${body}</div></section>`;
+  const mlabel = (m) => `${m.slice(0, 4)}年${+m.slice(5)}月`;
+  function monthBar() {
+    const ms = months(), i = ms.indexOf(S.month);
+    return `<div class="month"><button data-act="month" data-v="${ms[i - 1] || ""}" ${i <= 0 ? "disabled" : ""} aria-label="前の月">‹</button>
+      <select data-chg="month" aria-label="月を選ぶ">${ms.slice().reverse().map((m) => `<option value="${m}" ${m === S.month ? "selected" : ""}>${mlabel(m)}</option>`).join("")}</select>
+      <button data-act="month" data-v="${ms[i + 1] || ""}" ${i >= ms.length - 1 ? "disabled" : ""} aria-label="次の月">›</button></div>`;
+  }
+  const period = (s) => (s.from ? `<div class="period">利用期間：${s.from.replace(/-/g, "/")} 〜 ${s.to.replace(/-/g, "/")}</div>` : "");
+  const diff = (now, before) => (before == null ? "" : `<small class="diff">${now >= before ? "+" : "−"}${Math.abs(now - before).toLocaleString("ja-JP")}</small>`);
+  // 精算の状態（済み / 予定日 / まだ）
+  function settleState(m) {
+    const info = D.settled[m];
+    if (!info || !/^\d{4}-\d{2}-\d{2}$/.test(info.date || "")) return { cls: "", text: "未精算" };   // 日付の形でないものは出さない
+    const d = info.date.replace(/-/g, "/");
+    return info.date <= today() ? { cls: "ok", text: `✔ 精算済み（${d}）` } : { cls: "plan", text: `精算予定日：${d}` };
+  }
+  // いちばん知りたい数字（見ている人自身の負担）を、ページのいちばん上に大きく出す。出し方はデザインごとに変える
+  const kpi = (lab, val, sub, cls) => `<div class="kpi ${cls || ""}"><div class="lab">${lab}</div><div class="val">${val}</div>${sub ? `<div class="sub">${sub}</div>` : ""}</div>`;
+  function hero(s) {
+    const c = D.cfg, st = settleState(S.month), own = D.role === "owner", mo = +S.month.slice(5), th = theme();
+    const me = own ? [c.owner, s.grand.r] : [c.partner, s.grand.a], other = own ? [c.partner, s.grand.a] : [c.owner, s.grand.r];
+    // IBM風: 数字のタイルを横に並べる（いちばん大事な数字を、いちばん濃く・大きく）
+    if (th === "ibm") return `<section class="kpis">${kpi(`${mo}月分・${esc(me[0])}の負担`, yen(me[1]), "家賃を含む", "main")}${kpi(`${esc(other[0])}の負担`, yen(other[1]), "家賃を含む")}
+      ${kpi("家計の合計", yen(s.grand.total), `生活費 ${yen(s.living.total)}＋家賃 ${yen(s.rent.total)}`)}${kpi("精算", `<span class="chip ${st.cls}">${st.text}</span>`, "", "state")}</section>`;
+    // Apple風: 1枚のカードに大きな数字、その下に相手の分と合計
+    if (th === "apple") return `<section class="hero"><div class="lab">${mo}月分・${esc(me[0])}の負担</div><div class="big">${yen(me[1])}</div><div class="chip ${st.cls}">${st.text}</div>
+      <div class="pair"><div><span>${esc(other[0])}の負担</span><b>${yen(other[1])}</b></div><div><span>家計の合計（家賃を含む）</span><b>${yen(s.grand.total)}</b></div></div></section>`;
+    return `<section class="hero"><div class="lab">${mo}月分・${esc(me[0])}の負担</div><div class="big">${yen(me[1])}</div>
+      <div class="sub">家計の合計 ${yen(s.grand.total)}（家賃を含む）／ ${esc(other[0])}の負担 ${yen(other[1])}</div><div class="chip ${st.cls}">${st.text}</div></section>`;
+  }
+  function settleTable(s, prev) {
+    const c = D.cfg, row = (cls, name, x, p) => `<tr class="${cls}"><td>${esc(name)}</td><td>${yen(x.total)}${p ? diff(x.total, p.total) : ""}</td><td>${yen(x.r)}${p ? diff(x.r, p.r) : ""}</td><td>${yen(x.a)}${p ? diff(x.a, p.a) : ""}</td></tr>`;
+    return `<div class="scroll"><table class="settle"><tr><th>分類</th><th>合計</th><th>${esc(c.owner)}</th><th>${esc(c.partner)}</th></tr>
+      ${s.table.map((x) => row("", x.hcat, x, prev && prev.table.find((y) => y.hcat === x.hcat))).join("")}${row("sum", "生活費 計", s.living, prev && prev.living)}${row("", "家賃", s.rent, prev && prev.rent)}${row("grand", "合計", s.grand, prev && prev.grand)}</table></div>
+      ${prev ? '<p class="note">小さい数字は、前の月との差です。</p>' : ""}
+      <p class="note">※ 光熱費は ${esc(c.owner)} 6：${esc(c.partner)} 4。${esc(c.partner)}の分は端数を切り捨て（光熱費は10円未満、ほかは1円未満）、端数は${esc(c.owner)}の分に入ります。</p>`;
+  }
+  const tags = (r) => `${!r.shared ? '<span class="tag">対象外</span>' : ""}${r.custom ? '<span class="tag">分け方を指定</span>' : ""}` +
+    `${r.src === "未分類" ? '<span class="tag warn">未分類</span>' : r.src === "推測" || r.src === "AI推測" ? `<span class="tag warn">${r.src}</span>` : ""}${r.memo ? `<span class="tag">📝 ${esc(r.memo)}</span>` : ""}`;
+  // 明細の並べ方: IBM風は表、ほかはリスト。items は {id,date,name,amount,hcat,cat,extra,last}
+  const hcTag = (h) => `<span class="hc"><i style="background:${color(h)}"></i>${esc(h)}</span>`;
+  const mdS = (d) => `${+d.slice(5, 7)}/${+d.slice(8)}`;
+  function txList(items, act, lastHead) {
+    const catS = (r) => (r.cat ? `<span>${esc(r.cat.replace(">", "＞"))}</span>` : "");
+    if (theme() === "ibm") return `<div class="scroll"><table class="dt"><tr><th>日付</th><th class="c-n">内容</th><th class="c-h">分類</th><th>金額</th>${lastHead ? `<th>${esc(lastHead)}</th>` : ""}</tr>` +
+      items.map((r) => `<tr ${act ? `class="tap" data-act="${act}" data-v="${esc(r.id)}"` : ""}><td>${mdS(r.date)}</td><td class="c-n"><span class="name">${esc(r.name)}</span><span class="meta">${hcTag(r.hcat)}${catS(r)}${r.extra || ""}</span></td>
+        <td class="c-h">${hcTag(r.hcat)}</td><td>${yen(r.amount)}</td>${lastHead ? `<td>${r.last}</td>` : ""}</tr>`).join("") + `</table></div>`;
+    const tag = act ? "button" : "div";
+    return items.map((r) => `<${tag} class="tx" ${act ? `data-act="${act}" data-v="${esc(r.id)}"` : ""}><span class="name">${esc(r.name)}</span><span class="amt">${yen(r.amount)}</span>
+      <span class="meta"><span>${md(r.date)}</span>${hcTag(r.hcat)}${catS(r)}${lastHead ? `<span>${esc(lastHead)} ${r.last}</span>` : ""}${r.extra || ""}</span>${act ? '<span class="chev" aria-hidden="true">›</span>' : ""}</${tag}>`).join("");
+  }
+  const rowItem = (r) => ({ ...r, extra: tags(r) });
+
+  // ---------- グラフ（SVG） ----------
+  const tipAttr = (html) => `data-tip="${esc(html)}"`;
+  function barChart(cols, series, opt) {
+    const W = 360, H = 190, L = 34, R = 4, T = 10, B = 22, n = cols.length;   // スマホの幅で等倍になる大きさ
+    const max = Math.max(1, ...cols.map((c) => c.values.reduce((a, b) => a + b, 0)));
+    const step = [1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000].find((s) => max / s <= 4) || 2000000;
+    const top = Math.ceil(max / step) * step, y = (v) => T + (H - T - B) * (1 - v / top);
+    const slot = (W - L - R) / n, bw = Math.min(opt.maxBar || 60, Math.max(3, slot * 0.66));
+    let g = "";
+    for (let v = 0; v <= top; v += step) g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${v ? "#e1e0d9" : "#c3c2b7"}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" font-size="10" fill="#898781">${v >= 10000 ? v / 10000 + "万" : v.toLocaleString()}</text>`;
+    cols.forEach((c, i) => {
+      const cx = L + slot * i + slot / 2; let acc = 0;
+      c.values.forEach((v, k) => {
+        if (!v) return;
+        const y1 = y(acc + v), h = Math.max(1, y(acc) - y1 - (acc ? 2 : 0)), last = !c.values.slice(k + 1).some(Boolean), rr = last ? Math.min(4, bw / 2, h) : 0;
+        g += `<path d="M${cx - bw / 2},${y1 + h} v${-(h - rr)} q0,${-rr} ${rr},${-rr} h${bw - 2 * rr} q${rr},0 ${rr},${rr} v${h - rr} z" fill="${series[k].color}"/>`;
+        acc += v;
+      });
+      if (c.label) g += `<text x="${cx}" y="${H - 7}" text-anchor="middle" font-size="10" fill="#898781">${esc(c.label)}</text>`;
+      g += `<rect x="${L + slot * i}" y="${T}" width="${slot}" height="${H - T - B}" fill="transparent" ${tipAttr(c.tip)}/>`;
+    });
+    return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.label)}">${g}</svg></div>` +
+      (series.length > 1 ? `<div class="legend">${series.map((s) => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>` : "");
+  }
+  function donut(parts, total) {
+    const R = 86, r = 52, C = 100; let a = -Math.PI / 2, g = "";
+    const pt = (rad, ang) => `${C + rad * Math.cos(ang)},${C + rad * Math.sin(ang)}`;
+    for (const p of parts) {
+      const d = (p.value / total) * Math.PI * 2, b = a + Math.min(d, Math.PI * 2 - 0.0001), big = d > Math.PI ? 1 : 0;
+      g += `<path d="M${pt(R, a)} A${R},${R} 0 ${big} 1 ${pt(R, b)} L${pt(r, b)} A${r},${r} 0 ${big} 0 ${pt(r, a)} Z" fill="${p.color}" stroke="#fff" stroke-width="2" ${tipAttr(`${esc(p.name)}<br><b>${yen(p.value)}</b>（${(p.value / total * 100).toFixed(1)}%）`)}/>`;
+      a += d;
+    }
+    return `<div class="chart donut"><svg viewBox="0 0 200 200" role="img" aria-label="分類ごとの割合">${g}
+      <text x="100" y="94" text-anchor="middle" font-size="11" fill="#52514e">生活費 計</text><text x="100" y="114" text-anchor="middle" font-size="16" font-weight="700" fill="#222">${yen(total)}</text></svg></div>`;
+  }
+
+  // ---------- 画面: ホーム ----------
+  function viewHome() {
+    const c = calc(S.month), s = c.settlement, rows = c.rows, ibm = theme() === "ibm";
+    const sum = (list) => list.reduce((a, r) => a + r.amount, 0);
+    const cardUse = sum(rows.filter((r) => r.shared)), other = sum(c.extra);
+    const pm = prevMonth(), pc = pm ? calc(pm) : null;
+    const [y, m] = S.month.split("-").map(Number), days = new Date(y, m, 0).getDate(), cols = [];
+    for (let d = 1; d <= days; d++) {
+      const key = `${S.month}-${String(d).padStart(2, "0")}`, v = sum(rows.filter((r) => r.shared && r.date === key)) + sum(c.extra.filter((r) => r.date === key));
+      cols.push({ label: d === 1 || d % 5 === 0 ? `${d}日` : "", values: [v], tip: `<b>${m}/${d}</b><br>${yen(v)}` });
+    }
+    const need = c.checks.unknown + c.checks.guessed;
+    const use = (label, now, before) => `<tr><th>${label}</th><td>${yen(now)}</td>${pc ? `<td>${diff(now, before).replace(/<\/?small[^>]*>/g, "")}</td>` : ""}</tr>`;
+    const alert = need ? `<div class="alert">分類の確認が必要な明細が ${need} 件あります（未分類 ${c.checks.unknown}・推測 ${c.checks.guessed}）。 <button data-act="review">確認する</button></div>` : "";
+    const spend = card("家計の支出", "家賃をのぞく", `<table>${pc ? "<tr><th></th><th>今月</th><th>前月比</th></tr>" : ""}${use("家族カードの利用", cardUse, pc && sum(pc.rows.filter((r) => r.shared)))}${use("カード以外の支出", other, pc && sum(pc.extra))}${use("生活費 計", s.living.total, pc && pc.settlement.living.total)}</table>
+        <div class="more"><button data-act="tab" data-v="settle">精算のくわしい表を見る ›</button></div>`);
+    const daily = card("日ごとの支出", "", barChart(cols, [{ name: "家計", color: "var(--s1)" }], { label: "日ごとの家計の支出", maxBar: 14 }));
+    const latest = card("最新の明細", "", txList(rows.slice(-5).reverse().map(rowItem), "edit") + `<div class="more"><button data-act="tab" data-v="list">明細をすべて見る ›</button></div>`, "wide");
+    // IBM風は グラフ（広い）→ 支出 → 明細の表。ほかは 支出 → グラフ → 明細
+    return `${period(s)}${hero(s)}${alert}<div class="grid ${ibm ? "g21" : ""}">${ibm ? daily + spend : spend + daily}${latest}</div>`;
+  }
+
+  // ---------- 画面: 家計（カレンダーと明細） ----------
+  function viewList() {
+    const c = calc(S.month), [y, m] = S.month.split("-").map(Number), th = theme();
+    const first = new Date(y, m - 1, 1).getDay(), days = new Date(y, m, 0).getDate();
+    let cal = WD.map((w) => `<div class="wd">${w}</div>`).join("");
+    for (let i = 0; i < first; i++) cal += `<button class="out" disabled></button>`;
+    for (let d = 1; d <= days; d++) {
+      const key = `${S.month}-${String(d).padStart(2, "0")}`, v = c.rows.filter((r) => r.date === key).reduce((a, r) => a + r.amount, 0);
+      cal += `<button data-act="day" data-v="${key}" class="${S.day === key ? "sel" : ""}"><span class="d">${d}</span><span class="v">${v ? "-" + v.toLocaleString() : ""}</span></button>`;
+    }
+    const q = K.norm(S.q);
+    const list = c.rows.filter((r) => (!S.day || r.date === S.day) && (!S.hcat || r.hcat === S.hcat) && (!q || K.norm(r.name).includes(q)) &&
+      (S.scope === "all" || (S.scope === "review" && ["未分類", "推測", "AI推測"].includes(r.src)) || (S.scope === "off" && !r.shared) || (S.scope === "custom" && r.custom))).reverse();
+    const opt = (v, t, cur) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(t)}</option>`;
+    const calCard = card("カレンダー", "日付を押すと、その日の明細だけになります", `<div class="cal">${cal}</div>`, "k-cal");
+    const listCard = card("明細", `${list.length}件・合計 ${yen(list.reduce((a, r) => a + r.amount, 0))}`, `
+      <div class="filters"><select data-chg="scope" aria-label="しぼりこみ">${[["all", "全て"], ["review", "要確認"], ["off", "対象外にしたもの"], ["custom", "分け方を指定"]].map(([v, t]) => opt(v, t, S.scope)).join("")}</select>
+        <select data-chg="hcat" aria-label="分類">${opt("", "分類：全て", S.hcat)}${K.HCATS.map((b) => opt(b, b, S.hcat)).join("")}</select>
+        <input data-inp="q" placeholder="店名でさがす" value="${esc(S.q)}">${S.day ? `<button class="btn" data-act="day" data-v="">${md(S.day)} ✕</button>` : ""}</div>
+      <div id="txlist">${list.length ? txList(list.map(rowItem), "edit") : '<p class="note">当てはまる明細はありません。</p>'}</div>
+      <p class="note">明細を押すと、分類・家計に入れるかどうか・負担の分け方を直せます。</p>`, "k-tx");
+    // せまい画面では、Apple風は切り替えボタン（カレンダーが先）、IBM風はタブ（明細の表が先）で1つずつ見せる
+    const sub = S.sub || (th === "ibm" ? "tx" : "cal");
+    const sw = (k, t) => `<button data-act="sub" data-v="${k}" class="${sub === k ? "on" : ""}">${t}</button>`;
+    if (th === "apple") return `<div class="seg subseg">${sw("cal", "カレンダー")}${sw("tx", "明細")}</div><div class="grid side sub-${sub}">${calCard}${listCard}</div>`;
+    if (th === "ibm") return `<div class="ltabs">${sw("tx", "明細")}${sw("cal", "カレンダー")}</div><div class="grid g21 sub-${sub}">${listCard}${calCard}</div>`;
+    return `<div class="grid side">${calCard}${listCard}</div>`;
+  }
+
+  // ---------- 画面: 予算 ----------
+  function viewBudget() {
+    const c = calc(S.month), B = D.budget, used = (k) => c.settlement.table.find((x) => x.hcat === k).total;
+    const meter = (u, b, over) => `<span class="meter${over ? " over" : ""}"><i style="width:${b ? Math.min(100, u / b * 100) : 100}%"></i></span>`;
+    const line = (key) => {
+      const b = B[key], u = used(key), over = b != null && u > b;
+      return `<button class="tx" data-act="budget" data-v="${esc(key)}"><span class="name"><i class="dot" style="background:${color(key)}"></i>${esc(key)}</span><span class="amt">${yen(u)}${b != null ? ` / ${yen(b)}` : ""}</span>
+        ${b != null ? `${meter(u, b, over)}<span class="meta">${over ? `⚠ ${yen(u - b)} 超過` : `残り ${yen(b - u)}`}</span>` : '<span class="meta">予算なし（押すと設定できます）</span>'}<span class="chev" aria-hidden="true">›</span></button>`;
+    };
+    const trow = (key) => {
+      const b = B[key], u = used(key), over = b != null && u > b;
+      return `<tr class="tap" data-act="budget" data-v="${esc(key)}"><td class="c-n"><span class="name"><span class="swatch" style="background:${color(key)}"></span>${esc(key)}</span>${b != null ? meter(u, b, over) : ""}</td><td>${yen(u)}</td><td>${b != null ? yen(b) : "—"}</td><td>${b == null ? "—" : over ? `⚠ −${yen(u - b)}` : yen(b - u)}</td></tr>`;
+    };
+    const keys = Object.keys(B), bt = keys.reduce((a, k) => a + B[k], 0), ut = keys.reduce((a, k) => a + used(k), 0);
+    const total = keys.length ? `<table><tr><th>予算の合計</th><td>${yen(bt)}</td></tr><tr><th>予算のある分類の支出</th><td>${yen(ut)}</td></tr><tr><th>${ut > bt ? "⚠ 超過" : "残り"}</th><td>${yen(Math.abs(bt - ut))}</td></tr></table>` : "";
+    const body = theme() === "ibm" ? `<div class="scroll"><table class="dt"><tr><th class="c-n">分類</th><th>支出</th><th>予算</th><th>残り</th></tr>${K.HCATS.map(trow).join("")}</table></div>` : K.HCATS.map(line).join("");
+    return `<div class="grid">${card("家計の予算", "2人の合計・家賃をのぞく", `${total}${body}<p class="note">分類を押すと、1か月の予算を決められます。</p>`, "wide")}</div>`;
+  }
+  function editBudget(key) {
+    const cur = D.budget[key];
+    const el = sheet(`<h4>「${esc(key)}」の予算</h4><div class="note">家計（2人の合計）・1か月あたり。空欄にすると「予算なし」に戻ります。</div>
+      <label>予算（円）</label><input type="number" id="bAmt" inputmode="numeric" value="${cur != null ? cur : ""}">
+      <div class="actions"><button class="btn" data-x="cancel">やめる</button><button class="btn primary" data-x="save">保存する</button></div>`);
+    $("[data-x=cancel]", el).onclick = closeSheet;
+    $("[data-x=save]", el).onclick = async () => {
+      const val = numOrNull($("#bAmt", el).value);
+      if (val != null && !(val >= 0)) return toast("0以上の金額を入れてください");
+      const fn = (c) => { const n = { ...c }; if (val == null) delete n[key]; else n[key] = val; return n; };
+      if (await save("data/budget.json", D.budget, fn, `予算: ${key} ${val == null ? "なし" : val + "円"}`, (x) => { D.budget = x; })) { closeSheet(); render(); }
+    };
+  }
+
+  // ---------- 画面: 分析（内訳・月次推移） ----------
+  function viewAnalysis() {
+    const c = calc(S.month), t = c.settlement.table, total = c.settlement.living.total, ibm = theme() === "ibm";
+    const all = c.rows.filter((r) => r.shared).concat(c.extra.map((x) => ({ ...x, cat: "カード以外の支出" })));
+    const table = t.filter((x) => x.total).sort((a, b) => b.total - a.total).map((x) => {
+      const mids = {}; all.filter((r) => r.hcat === x.hcat).forEach((r) => { mids[r.cat] = (mids[r.cat] || 0) + r.amount; });
+      // IBM風は円グラフのかわりに、表の中に横棒を出す
+      const bar = ibm ? `<span class="meter"><i style="width:${x.total / total * 100}%;background:${color(x.hcat)}"></i></span>` : "";
+      return `<tr class="tap" data-act="open" data-v="${esc(x.hcat)}"><td><span class="swatch" style="background:${color(x.hcat)}"></span>${esc(x.hcat)} ${S.open[x.hcat] ? "▾" : "▸"}${bar}</td><td>${yen(x.total)}</td><td>${(x.total / total * 100).toFixed(1)}%</td></tr>` +
+        (S.open[x.hcat] ? Object.entries(mids).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<tr class="child"><td>${esc(k.replace(">", "＞"))}</td><td>${yen(v)}</td><td>${(v / total * 100).toFixed(1)}%</td></tr>`).join("") : "");
+    }).join("");
+    const series = K.HCATS.map((h) => ({ name: h, color: color(h) }));
+    const per = months().map((mo) => ({ mo, s: calc(mo).settlement }));
+    const cols = per.map((x) => ({ label: `${+x.mo.slice(5)}月`, values: x.s.table.map((r) => r.total), tip: `<b>${mlabel(x.mo)}</b><br>` + x.s.table.filter((r) => r.total).map((r) => `${esc(r.hcat)} ${yen(r.total)}`).join("<br>") }));
+    const trend = `<div class="scroll"><table style="min-width:${130 + 92 * per.length}px"><tr><th>分類</th>${per.map((x) => `<th>${+x.mo.slice(5)}月</th>`).join("")}</tr>
+      ${K.HCATS.map((h, i) => `<tr><td><span class="swatch" style="background:${color(h)}"></span>${esc(h)}</td>${per.map((x) => `<td>${yen(x.s.table[i].total)}</td>`).join("")}</tr>`).join("")}
+      <tr class="sum"><td>生活費 計</td>${per.map((x) => `<td>${yen(x.s.living.total)}</td>`).join("")}</tr></table></div>`;
+    const parts = card("内訳", "家計の生活費（家賃をのぞく）", total ? (ibm ? "" : donut(t.filter((x) => x.total).map((x) => ({ name: x.hcat, color: color(x.hcat), value: x.total })), total)) +
+        `<table><tr><th>分類</th><th>金額</th><th>割合</th></tr>${table}<tr class="sum"><td>生活費 計</td><td>${yen(total)}</td><td>100%</td></tr></table><p class="note">行を押すと、くわしい分類が開きます。</p>` : '<p class="note">この月の支出はありません。</p>');
+    const trendCard = card("月次推移", "月ごとの生活費", barChart(cols, series, { label: "月ごとの分類別の生活費", maxBar: 56 }) + trend);
+    return `<div class="grid ${ibm ? "g21" : ""}">${ibm ? trendCard + parts : parts + trendCard}</div>`;
+  }
+
+  // ---------- 画面: 精算（集計） ----------
+  function viewSettle() {
+    const c = calc(S.month), s = c.settlement, pm = prevMonth(), prev = pm ? calc(pm).settlement : null, st = settleState(S.month), P2 = D.cfg.partner;
+    if (D.role === "partner") {
+      // 配偶者用: いちばん上に負担額、その下に集計の表と、折半の対象になった明細（見るだけ）
+      const items = (D.pre[S.month].items || []).slice().reverse().map((m) => ({ ...m, last: yen(m.a) }));
+      return `${period(s)}${hero(s)}<div class="grid">${card("家計簿 集計", "", settleTable(s, prev), "wide")}
+        ${card("家計の明細", "折半の対象になったもの", items.length ? txList(items, null, `${P2}の分`) : '<p class="note">この月の明細はありません。</p>', "wide")}</div>`;
+    }
+    const info = D.settled[S.month] || {};
+    const extra = c.extra.slice().sort((x, y) => (x.date < y.date ? 1 : x.date > y.date ? -1 : 0)).map((m) => ({ ...m, last: yen(m.a), extra: m.custom ? '<span class="tag">分け方を指定</span>' : "" }));
+    return `${period(s)}${hero(s)}<div class="grid ${theme() === "ibm" ? "g21" : ""}">
+      ${card("家計簿 集計", "配偶者用のページにも同じ表が出ます", settleTable(s, prev))}
+      ${card("精算日", `${esc(P2)}との精算をした日（これからの予定日でも入れられます）`, `
+        <div class="sdate"><input type="date" id="sDate" value="${esc(info.date || "")}" aria-label="精算日"><button class="btn primary" data-act="sdate-save">保存する</button>${info.date ? '<button class="btn" data-act="sdate-clear">消す</button>' : ""}</div>
+        <p class="note">いまの状態：<b>${st.text}</b>。配偶者用のページにも表示されます。</p>
+        <h3>チェック</h3><table><tr><th>家計に入っている明細</th><td>${c.rows.filter((r) => r.shared).length + c.extra.length} 件</td></tr>
+        <tr><th>家計の「その他」</th><td>${c.checks.sharedOther} 件</td></tr><tr><th>分類の確認が必要（未分類・推測）</th><td>${c.checks.unknown + c.checks.guessed} 件</td></tr></table>`)}
+      ${card("カード以外の支出", "現金・別のカード・口座引き落とし（光熱費など）", `${extra.length ? txList(extra, "manual", P2) : '<p class="note">この月はまだありません。</p>'}
+        <div class="more"><button class="btn primary" data-act="manual" data-v="">＋ 追加する</button></div>`, "wide")}</div>`;
+  }
+  async function setSettled(date) {
+    const m = S.month;
+    if (date === undefined) { date = $("#sDate").value; if (!date) return toast("日付を選んでください"); }
+    const fn = (c) => { const n = { ...c }; if (date) n[m] = { date }; else delete n[m]; return n; };
+    if (await save("data/settled.json", D.settled, fn, `精算日: ${m} ${date || "消去"}`, (x) => { D.settled = x; })) render();
+  }
+
+  // ---------- 画面: 取り込み・設定 ----------
+  function viewSetup() {
+    const B = D.backend, th = theme();
+    return `<div class="grid">${card("CSVの取り込み", "", `<p class="note">三井住友カードの明細CSV（速報・確定どちらでも）を選ぶと、<b>家族カードの利用だけ</b>を取り込んで、自動で分類・集計します。本人カードの利用は取り込まず、保存もしません。同じ月のCSVを入れ直すと、新しいほうに置き換わります。</p>
+      <p><input type="file" id="csvFile" accept=".csv,text/csv"></p><p><button class="btn primary" data-act="upload">取り込む</button></p>`)}
+      ${card("デザイン", "この端末での見た目", `<div class="seg">${Object.entries(THEMES).map(([k, v]) => `<button data-act="theme" data-v="${k}" class="${th === k ? "on" : ""}">${v}</button>`).join("")}</div>
+        <p class="note">気に入らなければ、いつでも戻せます。配偶者用のページの見た目は、設定ファイルで決めたもの（${THEMES[payload.theme] || "Apple風"}）になります。</p>`)}
+      ${card("このページについて", "", `<table><tr><th>最終更新</th><td>${esc(D.builtAt)}</td></tr><tr><th>見られる月</th><td>${months().map(mlabel).join("、") || "なし"}</td></tr>
+        <tr><th>保存先</th><td>${B.type === "github" ? "GitHub（非公開）" : B.type === "local" ? "このPC（確認用）" : "なし（見るだけ）"}</td></tr>
+        <tr><th>分類ルール</th><td>店名 ${D.rules.mf.length}・キーワード ${D.rules.keywords.length}・辞書 ${D.rules.dict.length}・AI ${Object.keys(D.rules.ai || {}).length}</td></tr></table>
+        <p class="more"><button class="btn danger" data-act="forget">この端末のパスワードの記憶を消す</button></p>`, "wide")}</div>`;
+  }
+
+  // ---------- 編集 ----------
+  const closeSheet = () => { const s = $(".sheet"); if (s) s.remove(); };
+  // 編集の画面。Apple風は上に「キャンセル／保存」、IBM風は右上に×と下に大きなボタン（見た目は CSS で出し分け）
+  function sheet(html) {
+    closeSheet(); const el = document.createElement("div"); el.className = "sheet";
+    el.innerHTML = `<div role="dialog" aria-modal="true"><span class="grab"></span><div class="sbar"><button data-p="cancel">キャンセル</button><b>編集</b><button data-p="save" class="go">保存</button></div><button class="sclose" data-p="cancel" aria-label="閉じる">✕</button>${html}</div>`;
+    el.querySelectorAll("[data-p]").forEach((b) => { b.onclick = () => $(`[data-x=${b.dataset.p}]`, el).click(); });
+    el.addEventListener("click", (e) => { if (e.target === el) closeSheet(); }); document.body.appendChild(el); return el;
+  }
+  const optList = (arr, cur) => arr.map((v) => `<option ${v === cur ? "selected" : ""}>${esc(v)}</option>`).join("");
+  const numOrNull = (v) => (String(v).trim() === "" ? null : Number(v));
+
+  function editTx(id) {
+    const r = calc(S.month).rows.find((x) => x.id === id); if (!r) return;
+    const o = D.overrides[id] || {}, auto = K.classify(r.name, P), [big, mid] = r.cat.split(">");
+    const mids = (b) => [...new Set([...(K.TAXONOMY[b] || []), ...(b === big ? [mid] : [])])];
+    const el = sheet(`<h4>${esc(r.name)}</h4><div class="note">${md(r.date)}・${yen(r.amount)}・自動の分類：${esc(auto.cat.replace(">", "＞"))}（${auto.src}）</div>
+      <div class="row2"><div><label>大項目</label><select id="eBig">${optList(Object.keys(K.TAXONOMY), big)}</select></div><div><label>中項目</label><select id="eMid">${optList(mids(big), mid)}</select></div></div>
+      <label class="check"><input type="checkbox" id="eRule"> 同じ店名は、今後もこの分類にする</label>
+      <label class="check"><input type="checkbox" id="eShared" ${r.shared ? "checked" : ""}> 家計（折半）に入れる</label>
+      <div id="eKakei"><label>集計表での分類</label><select id="eHcat"><option value="">自動（大項目・中項目から決める）</option>${optList(K.HCATS, o.hcat || "")}</select>
+        <label>負担の分け方（空欄なら自動：半分ずつ、光熱費は6：4）</label><div class="row2"><input type="number" id="eR" inputmode="numeric" placeholder="${esc(D.cfg.owner)}の分" value="${o.r != null ? o.r : ""}"><input type="number" id="eA" inputmode="numeric" placeholder="${esc(D.cfg.partner)}の分" value="${o.a != null ? o.a : ""}"></div></div>
+      <label>メモ</label><input type="text" id="eMemo" value="${esc(o.memo || "")}">
+      <div class="actions"><button class="btn" data-x="cancel">やめる</button><button class="btn primary" data-x="save">保存する</button></div>`);
+    const bigSel = $("#eBig", el), midSel = $("#eMid", el), sh = $("#eShared", el), box = $("#eKakei", el);
+    const sync = () => { box.style.display = sh.checked ? "" : "none"; };
+    bigSel.onchange = () => { midSel.innerHTML = optList(mids(bigSel.value), ""); };
+    sh.onchange = sync; sync();
+    $("[data-x=cancel]", el).onclick = closeSheet;
+    $("[data-x=save]", el).onclick = async () => {
+      const cat = `${bigSel.value}>${midSel.value}`, n = {}, rr = numOrNull($("#eR", el).value), aa = numOrNull($("#eA", el).value);
+      const addRule = $("#eRule", el).checked;
+      if (cat !== auto.cat && !addRule) n.cat = cat;
+      if (!sh.checked) n.shared = false;
+      else { if ($("#eHcat", el).value) n.hcat = $("#eHcat", el).value; if (rr != null) n.r = rr; if (aa != null) n.a = aa; }
+      if (n.r != null && n.a != null && n.r + n.a !== r.amount) return toast(`分け方の合計（${yen(n.r + n.a)}）が金額（${yen(r.amount)}）と合いません`);
+      if ((n.r != null && (n.r < 0 || n.r > r.amount)) || (n.a != null && (n.a < 0 || n.a > r.amount))) return toast("分け方が金額をこえています");
+      if ($("#eMemo", el).value.trim()) n.memo = $("#eMemo", el).value.trim();
+      const btn = $("[data-x=save]", el); btn.disabled = true;
+      let ok = true;
+      if (addRule) ok = await save("rules/mf.json", D.rules.mf, (cur) => [{ name: r.name, cat }, ...cur.filter((x) => K.norm(x.name) !== K.norm(r.name))], `分類ルール: ${r.name} → ${cat}`, (v) => { D.rules.mf = v; P = K.prepRules(D.rules); });
+      if (ok) ok = await save("data/overrides.json", D.overrides, (cur) => { const c = { ...cur }; if (Object.keys(n).length) c[id] = n; else delete c[id]; return c; }, `手修正: ${r.date} ${r.name}`, (v) => { D.overrides = v; });
+      btn.disabled = false;
+      if (ok) { dirty(); closeSheet(); render(); }
+    };
+  }
+
+  function editManual(id) {
+    const m = D.manual.find((x) => x.id === id) || { date: `${S.month}-01`, name: "", amount: "", hcat: "光熱費" };
+    const el = sheet(`<h4>カード以外の支出</h4><div class="note">現金・別のカード・口座引き落としで払った、家計（折半）に入れる支出です。</div>
+      <div class="row2"><div><label>日付</label><input type="date" id="mDate" value="${esc(m.date)}"></div><div><label>金額</label><input type="number" id="mAmt" inputmode="numeric" value="${esc(m.amount)}"></div></div>
+      <label>内容</label><input type="text" id="mName" value="${esc(m.name)}"><label>分類</label><select id="mH">${optList(K.HCATS, m.hcat)}</select>
+      <label>${esc(D.cfg.partner)}の分（空欄なら自動：半分、光熱費は4割）</label><input type="number" id="mA" inputmode="numeric" value="${m.a != null ? m.a : ""}">
+      <div class="actions">${id ? '<button class="btn danger" data-x="del">削除</button>' : ""}<button class="btn" data-x="cancel">やめる</button><button class="btn primary" data-x="save">保存する</button></div>`);
+    $("[data-x=cancel]", el).onclick = closeSheet;
+    const commit = async (fn, msg) => { if (await save("data/manual.json", D.manual, fn, msg, (v) => { D.manual = v; })) { dirty(); closeSheet(); render(); } };
+    if (id) $("[data-x=del]", el).onclick = () => commit((cur) => cur.filter((x) => x.id !== id), `カード以外の支出を削除: ${m.name}`);
+    $("[data-x=save]", el).onclick = () => {
+      const date = $("#mDate", el).value, amount = Number($("#mAmt", el).value), name = $("#mName", el).value.trim(), a = numOrNull($("#mA", el).value);
+      if (!date || !name || !(amount > 0)) return toast("日付・内容・金額を入れてください");
+      if (a != null && (a < 0 || a > amount)) return toast("分け方が金額をこえています");
+      const n = { id: id || `m-${Date.now()}`, month: S.month, date, name, amount, hcat: $("#mH", el).value, ...(a != null ? { a } : {}) };
+      commit((cur) => [...cur.filter((x) => x.id !== n.id), n], `カード以外の支出: ${name} ${amount}円`);
+    };
+  }
+
+  async function upload() {
+    const f = $("#csvFile").files[0]; if (!f) return toast("CSVファイルを選んでください");
+    const bytes = new Uint8Array(await f.arrayBuffer());
+    let text; try { text = new TextDecoder("utf-8", { fatal: true }).decode(bytes); } catch (e) { text = new TextDecoder("shift_jis").decode(bytes); }
+    const txns = K.parseCard(text), mo = K.monthOf(txns);
+    if (!txns.length) return toast("家族カードの明細が見つかりませんでした。CSVの種類を確認してください");
+    const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
+    // 保存するのは家族カードの行だけにしたCSV（本人カードの利用は残さない）
+    if (store.on) { try { await store.write(`csv/upload-${stamp}.csv`, new TextEncoder().encode(K.toCsv(txns)), null, `CSV取り込み: ${mo}（${txns.length}件）`); } catch (e) { return toast(`保存できませんでした：${e.message}`); } }
+    D.months[mo] = { txns }; S.month = mo; S.tab = "home"; dirty(); render();
+    toast(`${mlabel(mo)}分 ${txns.length}件を取り込みました${store.on ? "。配偶者用のページには1〜2分で反映されます" : "（確認用のため保存されません）"}`);
+  }
+
+  // ---------- 描画と操作 ----------
+  const ic = (d) => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const TABS = [
+    ["home", "ホーム", '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>'],
+    ["list", "家計", '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'],
+    ["budget", "予算", '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'],
+    ["analysis", "分析", '<path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/>'],
+    ["settle", "精算", '<circle cx="12" cy="12" r="9"/><path d="M8.5 7.5L12 12l3.5-4.5M12 12v5M9 12h6M9 14.5h6"/>'],
+    ["setup", "取込", '<path d="M12 4v10M8 10l4 4 4-4"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>'],
+  ];
+  function render() {
+    const owner = D.role === "owner";
+    if (!S.month || !D.months[S.month]) S.month = months().pop();
+    // メニュー。置き場所はデザインごとに CSS で変える（Apple風スマホ＝下のタブバー5つ＋右上のボタン、IBM風＝左から出るメニュー）
+    $("#nav").innerHTML = owner ? TABS.map(([k, v, d]) => `<button data-act="tab" data-v="${k}" class="${S.tab === k ? "on" : ""}${k === "setup" ? " aux" : ""}" ${S.tab === k ? 'aria-current="page"' : ""}>${ic(d)}<span>${v}</span></button>`).join("") : "";
+    $("#brandNote").textContent = owner ? "" : `${D.cfg.owner}・${D.cfg.partner}`;
+    const hasMonth = S.month && (!owner || S.tab !== "setup");
+    const head = `<div class="pagehead"><h1 class="title">${owner ? TABS.find((t) => t[0] === S.tab)[1] : esc(D.cfg.title || "家計簿")}</h1>
+      ${owner && S.tab !== "setup" ? `<button class="gear" data-act="tab" data-v="setup" aria-label="取り込み・設定">${ic(TABS[5][2])}</button>` : ""}${hasMonth ? monthBar() : ""}</div>`;
+    if (!S.month) { app.innerHTML = head + (owner ? viewSetup() : '<p class="note">まだデータがありません。</p>'); return; }
+    app.innerHTML = head + (!owner ? viewSettle() : { home: viewHome, list: viewList, budget: viewBudget, analysis: viewAnalysis, settle: viewSettle, setup: viewSetup }[S.tab]());
+  }
+  document.addEventListener("click", (e) => {
+    const body = document.body;
+    if (body.classList.contains("nav-open") && !e.target.closest("#nav, #menuBtn")) body.classList.remove("nav-open");
+    const b = e.target.closest("[data-act]"); if (!b) return;
+    const a = b.dataset.act, v = b.dataset.v;
+    if (a === "menu") return void body.classList.toggle("nav-open");
+    if (a === "tab") { S.tab = v; body.classList.remove("nav-open"); window.scrollTo(0, 0); }
+    else if (a === "sub") S.sub = v;
+    else if (a === "month") { if (v) { S.month = v; S.day = null; } }
+    else if (a === "day") { S.day = S.day === v ? null : v || null; if (S.day) S.sub = "tx"; }
+    else if (a === "review") { S.tab = "list"; S.sub = "tx"; S.scope = "review"; S.day = null; S.hcat = ""; S.q = ""; }
+    else if (a === "open") S.open[v] = !S.open[v];
+    else if (a === "theme") { try { localStorage.setItem(THEMEKEY, v); } catch (x) {} S.sub = null; applyTheme(); }
+    else if (a === "edit") return editTx(v);
+    else if (a === "manual") return editManual(v);
+    else if (a === "budget") return editBudget(v);
+    else if (a === "sdate-save") return setSettled();
+    else if (a === "sdate-clear") return setSettled("");
+    else if (a === "upload") return upload();
+    else if (a === "forget") { try { localStorage.removeItem(PWKEY); } catch (x) {} return toast("この端末の記憶を消しました"); }
+    render();
+  });
+  document.addEventListener("change", (e) => { const k = e.target.dataset.chg; if (k) { S[k] = e.target.value; if (k === "month") S.day = null; render(); } });
+  document.addEventListener("input", (e) => {
+    if (e.target.dataset.inp !== "q") return;
+    S.q = e.target.value; const pos = e.target.selectionStart; render();
+    const i = $("[data-inp=q]"); i.focus(); i.setSelectionRange(pos, pos);
+  });
+  // グラフの吹き出し
+  const showTip = (e) => {
+    const t = e.target.closest && e.target.closest("[data-tip]"), old = $(".tip");
+    if (!t) { if (old) old.style.display = "none"; return; }
+    const box = t.closest(".chart"); let tip = $(".tip", box);
+    if (!tip) { tip = document.createElement("div"); tip.className = "tip"; box.appendChild(tip); }
+    if (old && old !== tip) old.style.display = "none";
+    tip.innerHTML = t.dataset.tip; tip.style.display = "block";
+    const r = box.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    tip.style.left = `${Math.max(0, Math.min(r.width - tip.offsetWidth, x + 12))}px`; tip.style.top = `${Math.max(0, y - tip.offsetHeight - 10)}px`;
+  };
+  document.addEventListener("pointermove", showTip); document.addEventListener("pointerdown", showTip);
+
+  // ---------- 起動（暗号化されていればパスワードで開く） ----------
+  async function decrypt(p, pw) {
+    const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64d(p.salt), iterations: p.iter, hash: "SHA-256" }, km, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+    return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64d(p.iv) }, key, b64d(p.ct))));
+  }
+  async function start(data) {
+    D = data; D.overrides = D.overrides || {}; D.manual = D.manual || []; D.settled = D.settled || {}; D.budget = D.budget || {};
+    if (D.role === "owner") {
+      P = K.prepRules(D.rules);
+      render();
+      // ページを作ったあとにスマホで直した分があれば、最新を読み込む
+      if (store.on) try {
+        const [o, m, r, s, b] = await Promise.all(["data/overrides.json", "data/manual.json", "rules/mf.json", "data/settled.json", "data/budget.json"].map((p) => store.read(p)));
+        if (o.json) D.overrides = o.json; if (m.json) D.manual = m.json; if (r.json) { D.rules.mf = r.json; P = K.prepRules(D.rules); }
+        if (s.json) D.settled = s.json; if (b.json) D.budget = b.json;
+        dirty(); if (!$(".sheet") && document.activeElement.tagName !== "INPUT") render();
+      } catch (e) {}
+    } else {
+      // 配偶者用は、計算済みの集計と家計の明細だけを受け取る
+      D.pre = D.months; D.months = {};
+      for (const k in D.pre) { D.months[k] = { txns: [] }; cache[k] = { settlement: D.pre[k].settlement, rows: [], extra: [], checks: {} }; if (D.pre[k].settled) D.settled[k] = D.pre[k].settled; }
+      render();
+    }
+  }
+  function lock(msg) {
+    app.innerHTML = `<div class="lock"><h2>パスワードを入力してください</h2><form id="lockF"><input type="password" id="pw" autocomplete="current-password" autofocus>
+      <label class="check" style="justify-content:center"><input type="checkbox" id="keep" checked> この端末に記憶する</label><div class="err">${esc(msg || "")}</div><button class="btn primary">開く</button></form></div>`;
+    $("#lockF").onsubmit = async (e) => {
+      e.preventDefault(); const pw = $("#pw").value;
+      try { const d = await decrypt(payload, pw); if ($("#keep").checked) try { localStorage.setItem(PWKEY, pw); } catch (x) {} start(d); }
+      catch (x) { lock("パスワードが違います"); }
+    };
+  }
+  (async () => {
+    // ほかのサイトの中に埋め込まれて表示されたときは、何も出さない（だまして操作させる手口を防ぐ）
+    if (window.top !== window.self) { document.body.textContent = ""; return; }
+    if (!payload.enc) return start(payload.data);
+    let saved = null; try { saved = localStorage.getItem(PWKEY); } catch (e) {}
+    if (saved) try { return start(await decrypt(payload, saved)); } catch (e) {}
+    lock();
+  })();
+})();
+</script>
+</body>
+</html>
